@@ -51,7 +51,9 @@ export function CalendarToolbar({
         <StepButton label="Next" onClick={() => onStep(1)} glyph="›" />
       </div>
 
-      <h1 className="ml-1 min-w-0 flex-1 truncate font-display text-xl sm:text-2xl">
+      {/* Order matters on a phone: the period title gets its own full-width
+          row rather than being truncated to "August…" beside the arrows. */}
+      <h1 className="order-first w-full min-w-0 font-display text-xl sm:order-none sm:ml-1 sm:w-auto sm:flex-1 sm:truncate sm:text-2xl">
         {title}
       </h1>
 
@@ -65,14 +67,14 @@ export function CalendarToolbar({
         </button>
       ) : null}
 
-      <div className="flex overflow-hidden rounded-full border border-line">
+      <div className="flex w-full overflow-hidden rounded-full border border-line sm:w-auto">
         {(Object.keys(VIEW_LABELS) as CalendarView[]).map((name) => (
           <button
             key={name}
             type="button"
             onClick={() => onView(name)}
             aria-pressed={view === name}
-            className={`px-3 py-1.5 text-sm font-medium transition ${
+            className={`flex-1 px-3 py-1.5 text-sm font-medium transition sm:flex-none ${
               view === name ? "bg-ink text-paper" : "text-subtle hover:bg-brand-soft hover:text-ink"
             }`}
           >

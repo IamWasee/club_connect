@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import { BottomNav } from "@/components/BottomNav";
 import { Grain } from "@/components/Poster";
 import { Header } from "@/components/Header";
 import { DemoProvider } from "@/demo/store";
@@ -26,6 +27,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Lets the bottom bar paint under the home indicator and read
+  // env(safe-area-inset-*) on notched iPhones.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#e4ece5" },
     { media: "(prefers-color-scheme: dark)", color: "#1b241e" },
@@ -39,7 +43,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Grain />
         <DemoProvider>
           <Header />
-          <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">{children}</main>
+          {/* pb-24 on phones clears the fixed bottom bar. */}
+          <main className="mx-auto max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pb-14 sm:pt-14">
+            {children}
+          </main>
+          <BottomNav />
         </DemoProvider>
       </body>
     </html>

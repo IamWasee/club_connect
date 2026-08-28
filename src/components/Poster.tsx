@@ -89,7 +89,7 @@ export function PageHead({
 }) {
   return (
     <header className="mb-8">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
         <div className="min-w-0">
           {label ? (
             <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-subtle">
@@ -101,14 +101,16 @@ export function PageHead({
               heading stalls at partial opacity whenever the tab is throttled,
               which leaves the most important text on the page unreadable.
               Motion belongs on feedback and dialogs, not on legibility. */}
-          <h1 className="text-balance font-display text-4xl sm:text-5xl">{title}</h1>
+          <h1 className="text-balance font-display text-[2rem] leading-[0.95] sm:text-5xl">
+            {title}
+          </h1>
 
           {lede ? (
             <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-subtle">{lede}</p>
           ) : null}
         </div>
 
-        {action ? <div className="shrink-0 pt-1">{action}</div> : null}
+        {action ? <div className="shrink-0 sm:pt-1">{action}</div> : null}
       </div>
 
       <SparkleRule className="mt-6" />

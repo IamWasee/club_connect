@@ -93,7 +93,7 @@ export function Overlay({
           animate={{ opacity: 1 }}
           exit={reduce ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.18, ease: EASE }}
-          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto overscroll-contain bg-[oklch(18%_0.02_155/0.55)] p-4 py-12 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto overscroll-contain bg-[oklch(18%_0.02_155/0.55)] backdrop-blur-[2px] sm:items-start sm:p-4 sm:py-12"
         >
           <button
             type="button"
@@ -106,7 +106,7 @@ export function Overlay({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 1 } : { opacity: 0, y: 8, scale: 0.99 }}
             transition={{ duration: 0.24, ease: EASE }}
-            className="relative w-full max-w-md"
+            className="relative w-full max-w-md pt-10 sm:pt-0"
           >
             {children}
           </motion.div>

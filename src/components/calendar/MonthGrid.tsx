@@ -33,7 +33,7 @@ export function MonthGrid({
     <div className="overflow-hidden rounded-2xl border border-line bg-surface/70 backdrop-blur-[2px]">
       <div className="grid grid-cols-7 border-b border-line">
         {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-[0.14em] text-subtle">
+          <div key={label} className="px-1 py-2 text-center text-[9px] font-medium uppercase tracking-[0.1em] text-subtle sm:px-2 sm:py-2.5 sm:text-[10px] sm:tracking-[0.14em]">
             {label}
           </div>
         ))}
@@ -50,7 +50,7 @@ export function MonthGrid({
           return (
             <div
               key={day.toISOString()}
-              className={`min-h-28 border-line p-1.5 sm:min-h-32 ${
+              className={`min-h-16 border-line p-1 sm:min-h-32 sm:p-1.5 ${
                 index % 7 !== 6 ? "border-r" : ""
               } ${index < 35 ? "border-b" : ""} ${outside ? "bg-canvas/40" : ""}`}
             >
@@ -59,7 +59,7 @@ export function MonthGrid({
                   type="button"
                   onClick={() => onOpenDay(day)}
                   title="Open this day"
-                  className={`mb-1.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs tabular-nums transition-colors ${
+                  className={`mb-1 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] tabular-nums transition-colors sm:mb-1.5 sm:h-7 sm:min-w-7 sm:px-1.5 sm:text-xs ${
                     today
                       ? "bg-ink font-semibold text-paper"
                       : outside
@@ -71,7 +71,24 @@ export function MonthGrid({
                 </button>
               </div>
 
-              <div className="space-y-0.5">
+              {/* Phones get dots: a 50px column cannot hold "9am Club fair".
+                  Tapping the date opens that day. */}
+              <button
+                type="button"
+                onClick={() => onOpenDay(day)}
+                aria-label={`${dayEvents.length} event(s) on ${day.toDateString()}`}
+                className="flex w-full flex-wrap justify-center gap-0.5 sm:hidden"
+              >
+                {dayEvents.slice(0, 4).map((event) => (
+                  <span
+                    key={event.id}
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: event.color }}
+                  />
+                ))}
+              </button>
+
+              <div className="hidden space-y-0.5 sm:block">
                 {shown.map((event) => (
                   <MonthChip key={event.id} event={event} onOpen={() => onOpenEvent(event)} />
                 ))}
