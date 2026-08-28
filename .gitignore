@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+.env
+.env*.local
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# Local agent tooling, not part of the app. `.claude/skills` also contains
+# skill files vendored from other people's repositories.
+.claude/
+.claude-flow/
+.agents/
+.mcp.json
+skills-lock.json
+
+# Stale: documents a service-role key and an allowlist importer that no longer
+# exist. The current two variables are in the README.
+.env.example
