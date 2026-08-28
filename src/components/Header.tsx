@@ -29,13 +29,15 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
           <Sparkle size={15} className="text-brand" />
           <span className="font-display text-lg tracking-[-0.03em]">ClubConnect</span>
         </Link>
 
-        <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
+        {/* Below md this is replaced by BottomNav; a squeezed strip of five
+            links in ~46px is unusable. */}
+        <nav className="hidden flex-1 items-center gap-1 md:flex">
           {NAV.slice(0, 2).map((item) => (
             <NavLink key={item.href} {...item} pathname={pathname} />
           ))}
@@ -49,9 +51,11 @@ export function Header() {
           ) : null}
         </nav>
 
+        <span className="flex-1 md:hidden" />
+
         <Link
           href="/profile"
-          className="relative rounded-full p-1 transition hover:bg-brand-soft"
+          className="relative shrink-0 rounded-full p-1 transition hover:bg-brand-soft"
           title="Your profile"
         >
           <Avatar identity={me} size="sm" />

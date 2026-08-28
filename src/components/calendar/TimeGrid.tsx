@@ -40,7 +40,11 @@ export function TimeGrid({
   }, []);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface/70 backdrop-blur-[2px]">
+    // A week is 7 columns plus an hour gutter. Below ~640px that cannot fit
+    // legibly, so the whole grid scrolls horizontally at a usable min width
+    // rather than crushing every column to 40px.
+    <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-line bg-surface/70 backdrop-blur-[2px]">
+      <div className={days.length > 1 ? "min-w-[42rem]" : "min-w-0"}>
       <div className="flex border-b border-line">
         <div className="w-14 shrink-0" />
         {days.map((day) => (
@@ -110,6 +114,7 @@ export function TimeGrid({
             />
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

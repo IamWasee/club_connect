@@ -105,9 +105,19 @@ async function main() {
 
   console.log("\nProject");
   try {
-    const res = await fetch(`${url}/rest/v1/`, { headers: { apikey: key } });
+    // Probe a real table, not `/rest/v1/`. The REST root serves the OpenAPI
+    // spec and answers 401 to the anon key even on a perfectly healthy
+    // project, which makes it useless as a reachability check.
+    const res = await fetch(`${url}/rest/v1/clubs?select=id&limit=1`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
     if (res.status === 401) {
       report(FAIL, "REST API", "401", "Use the URL and key from the SAME project");
+      finish();
+      return;
+    }
+    if (res.status === 404) {
+      report(FAIL, "REST API", "no `clubs` table", "Run supabase/migrations/0001_schema.sql");
       finish();
       return;
     }

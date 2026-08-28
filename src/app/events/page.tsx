@@ -30,7 +30,13 @@ export default function EventsPage() {
   const { state, me } = useDemo();
   const mayManage = canManageEvents(state, me);
 
-  const [view, setView] = useState<CalendarView>("month");
+  // Month is the right default on a laptop. On a phone a 7-column grid is a
+  // wall of dots, so the agenda is what people actually want to see first.
+  const [view, setView] = useState<CalendarView>(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+      ? "schedule"
+      : "month",
+  );
   // `anchor` is the day the current view is built around.
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
   const [openEvent, setOpenEvent] = useState<Event | null>(null);
