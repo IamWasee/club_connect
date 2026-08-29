@@ -10,18 +10,16 @@ import {
   IdentificationBadgeIcon,
 } from "@phosphor-icons/react";
 
+import { Avatar } from "@/components/Avatar";
 import { useDemo } from "@/demo/store";
-import { canSeeDirectory } from "@/demo/selectors";
+import { canSeeDirectory, pendingInvites } from "@/demo/selectors";
 
 /**
  * Phone navigation.
  *
- * The header's inline links collapse to unusable width on a phone: at 375px the
- * nav had 46px to render 378px of links, so "Forum" was sliced in half and the
- * rest were unreachable. A thumb-reachable bottom bar is what a phone app
- * actually does, and it frees the header for the account controls.
- *
- * Hidden from `md` up, where the inline header nav takes over.
+ * There is no top bar anywhere in the app, so on a phone this bar is the whole
+ * of the chrome: five destinations plus the avatar. Hidden from `md` up, where
+ * the left rail takes over.
  */
 const ITEMS = [
   { href: "/", label: "Forum", Icon: ChatCircleTextIcon },
@@ -37,6 +35,8 @@ export function BottomNav() {
   const items = canSeeDirectory(state, me)
     ? [...ITEMS, { href: "/directory", label: "Students", Icon: IdentificationBadgeIcon }]
     : ITEMS;
+  const invites = pendingInvites(state, me.id).length;
+  const onProfile = pathname === "/profile";
 
   return (
     <nav
@@ -63,6 +63,27 @@ export function BottomNav() {
             </li>
           );
         })}
+
+        {/* With no top bar there is nowhere else for the avatar to live. */}
+        <li className="flex-1">
+          <Link
+            href="/profile"
+            aria-current={onProfile ? "page" : undefined}
+            className={`flex flex-col items-center gap-1 px-1 py-2.5 text-[10px] font-medium transition-colors ${
+              onProfile ? "text-ink" : "text-subtle"
+            }`}
+          >
+            <span className="relative">
+              <Avatar identity={me} size="xs" />
+              {invites > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-on-brand">
+                  {invites}
+                </span>
+              ) : null}
+            </span>
+            <span className="truncate">You</span>
+          </Link>
+        </li>
       </ul>
     </nav>
   );

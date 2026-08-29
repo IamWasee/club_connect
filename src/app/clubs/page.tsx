@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Avatar } from "@/components/Avatar";
-import { ClubBanner, ClubMark, PATTERN_CHOICES } from "@/components/ClubArt";
+import { ClubMark, PATTERN_CHOICES } from "@/components/ClubArt";
+import { ClubArtSwatch } from "@/components/ClubBackdrop";
 import { Badge, Button, Card, EmptyState, Field, PageHead, TextArea, TextInput } from "@/components/ui";
 import { useActions, useDemo } from "@/demo/store";
 import { membership, roster, rosterSize } from "@/demo/selectors";
@@ -52,26 +53,41 @@ export default function ClubsPage() {
 
             return (
               <Link key={club.id} href={`/clubs/${club.slug}`} className="group block focus:outline-none">
-                <Card className="h-full overflow-hidden !p-0 transition group-hover:border-brand">
-                  <ClubBanner club={club} className="h-32 w-full" />
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <ClubMark club={club} size="sm" />
-                        <h2 className="truncate font-display text-lg">{club.name}</h2>
+                <Card className="relative h-full overflow-hidden !p-0 transition group-hover:border-brand">
+                  {/* A spine rather than a banner: the club's colour is on the
+                      card without a picture strip across the top of it. */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 w-1.5"
+                    style={{ background: club.themeColor }}
+                  />
+                  <div className="p-5 pl-6">
+                    <div className="flex items-start gap-3">
+                      <ClubMark club={club} size="lg" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h2 className="min-w-0 truncate font-display text-xl">{club.name}</h2>
+                          {mine?.status === "invited" ? (
+                            <Badge>Invited</Badge>
+                          ) : mine?.status === "accepted" ? (
+                            <Badge tone="muted">Member</Badge>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 truncate text-[11px] font-medium uppercase tracking-[0.16em] text-subtle">
+                          {people.president
+                            ? `Led by ${people.president.displayName}`
+                            : "Seat vacant"}
+                        </p>
                       </div>
-                      {mine?.status === "invited" ? (
-                        <Badge>Invited</Badge>
-                      ) : mine?.status === "accepted" ? (
-                        <Badge tone="muted">Member</Badge>
-                      ) : null}
                     </div>
 
                     {club.description ? (
-                      <p className="mt-2 line-clamp-2 text-sm text-subtle">{club.description}</p>
+                      <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-subtle">
+                        {club.description}
+                      </p>
                     ) : null}
 
-                    <div className="mt-4 flex items-center gap-2">
+                    <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
                       <div className="flex -space-x-2">
                         {[people.president, people.vp, ...people.members]
                           .filter((person) => person !== null)
@@ -200,7 +216,7 @@ function ClubForm({ onDone }: { onDone: () => void }) {
         </div>
 
         <div>
-          <span className="mb-2 block text-sm font-medium">Banner style</span>
+          <span className="mb-2 block text-sm font-medium">Artwork</span>
           <div className="flex flex-wrap gap-2">
             {PATTERN_CHOICES.map((choice) => (
               <button
@@ -223,10 +239,13 @@ function ClubForm({ onDone }: { onDone: () => void }) {
               </button>
             ))}
           </div>
+          <p className="mt-2 text-xs text-subtle">
+            The scene the club&apos;s page sits on.
+          </p>
           <div className="mt-3 overflow-hidden rounded-xl border border-line">
-            <ClubBanner
+            <ClubArtSwatch
               club={{ pattern: form.pattern, themeColor: form.themeColor }}
-              className="h-20 w-full"
+              className="aspect-[16/9] w-full"
             />
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { Avatar } from "@/components/Avatar";
+import { PersonBadges } from "@/components/Badges";
 import { ClubMark } from "@/components/ClubArt";
 import { Card, EmptyState, PageHead, TextInput } from "@/components/ui";
 import { useActions, useDemo } from "@/demo/store";
@@ -74,7 +75,7 @@ export default function DirectoryPage() {
         title="Student directory"
         lede={
           invitable.length === 0
-            ? "Everyone at the school, A to Z. Council members can browse the roll; inviting is for club officers and the council's president and vice president."
+            ? "Everyone at the school, A to Z, with the clubs they are in and the council seat they hold. Inviting is for club officers and the council's president and vice president."
             : invitable.length === 1
               ? `Everyone at the school, A to Z. Invite any of them to ${invitable[0].name}.`
               : "Everyone at the school, A to Z. Pick a name to invite them to a club."
@@ -142,6 +143,9 @@ function PersonRow({ person, clubs }: { person: User; clubs: Club[] }) {
           {ROLE_LABELS[person.role]}
         </span>
       </span>
+      {/* Council medal and club chips. Kept out of the truncating column so a
+          long name shortens rather than pushing the badges off the row. */}
+      <PersonBadges userId={person.id} />
     </>
   );
 

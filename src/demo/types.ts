@@ -40,6 +40,17 @@ export const BIO_MAX = 100;
 
 export type ReactionType = "positive" | "negative";
 
+/**
+ * Where a post is in the club review flow.
+ *
+ * `published` is the only state that reaches a feed. Ordinary club members
+ * write into `pending`; the club's president or VP moves it to `published` or
+ * `denied`. Main-forum posts are always `published` — only the council's
+ * officers and admin can write there in the first place, so there is nobody
+ * left to review them.
+ */
+export type PostStatus = "published" | "pending" | "denied";
+
 export type Post = {
   id: string;
   authorId: string;
@@ -49,6 +60,10 @@ export type Post = {
   content: string;
   imageUrl: string | null;
   createdAt: string;
+  status: PostStatus;
+  /** The officer who approved or denied it, and when. Null while pending. */
+  reviewedById: string | null;
+  reviewedAt: string | null;
 };
 
 export type Reaction = {

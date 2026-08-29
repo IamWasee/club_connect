@@ -2,149 +2,102 @@
 
 import { useId } from "react";
 
-import type { Club, ClubPattern } from "@/demo/types";
+import { ClubScene } from "@/components/ClubScenes";
+import type { Club } from "@/demo/types";
 
 /**
  * The artwork the whole club page sits on.
  *
- * Related to the club's banner but never the same drawing: the banner shows the
- * pitch, the backdrop shows the ball's panels; the banner is a filmstrip, the
- * backdrop is reels. Everything tiles, is drawn in the club's own colour at low
- * opacity, and sits behind the content — so it reads in both themes and never
- * fights the text.
+ * With the banner gone this is the club's only picture, so it does more work
+ * than the old tiling motif did: it is a scene of the thing the club does,
+ * anchored to the bottom of the viewport and faded out toward the top, where
+ * the masthead and the feed live. Text never has to compete with it.
  */
 export function ClubBackdrop({ club }: { club: Pick<Club, "pattern" | "themeColor"> }) {
-  const patternId = useId();
+  const id = useId();
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* A wash of the club colour, strongest at the top where the banner is. */}
+      {/* A wash of the club colour, rising from the floor of the scene. */}
       <div
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(120% 70% at 50% -10%, ${club.themeColor}24, transparent 68%)`,
+          background: `radial-gradient(120% 78% at 50% 106%, ${club.themeColor}26, transparent 72%)`,
         }}
       />
 
-      <svg className="h-full w-full" aria-hidden="true">
+      {/*
+        `h-auto` + the viewBox keeps the scene's proportions at any width, so it
+        is never stretched. The minimum width holds the drawing at a usable
+        scale on a phone — below it the scene would collapse into a thin strip
+        along the bottom of the screen — and the overflow is cropped either side.
+      */}
+      <svg
+        className="absolute bottom-0 left-1/2 h-auto w-full min-w-[900px] -translate-x-1/2"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMax meet"
+      >
         <defs>
-          <pattern
-            id={patternId}
-            width={TILE[club.pattern].size}
-            height={TILE[club.pattern].size}
-            patternUnits="userSpaceOnUse"
-          >
-            <g
-              fill={club.themeColor}
-              stroke="none"
-              opacity="0.10"
-            >
-              <Tile pattern={club.pattern} color={club.themeColor} />
-            </g>
-          </pattern>
+          <linearGradient id={`fade-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.24" stopColor="#fff" stopOpacity="0.32" />
+            <stop offset="0.55" stopColor="#fff" stopOpacity="1" />
+          </linearGradient>
+          <mask id={`mask-${id}`}>
+            <rect width="1440" height="900" fill={`url(#fade-${id})`} />
+          </mask>
         </defs>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+
+        {/* The ink is the club's colour pulled toward the page's own text
+            colour. `--color-ink` flips with the theme, so the drawing darkens
+            on paper and lightens on a dark canvas without a second palette. */}
+        <g
+          mask={`url(#mask-${id})`}
+          style={{ color: `color-mix(in oklab, ${club.themeColor} 62%, var(--color-ink))` }}
+          className="opacity-[0.3] dark:opacity-[0.34]"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="0"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <ClubScene pattern={club.pattern} />
+        </g>
       </svg>
     </div>
   );
 }
 
-/** Tile size per motif, chosen so the repeat isn't obvious at page width. */
-const TILE: Record<ClubPattern, { size: number }> = {
-  field: { size: 172 },
-  podium: { size: 188 },
-  filmstrip: { size: 168 },
-  grid: { size: 180 },
-  circuit: { size: 176 },
-  leaves: { size: 196 },
-  waves: { size: 168 },
-  confetti: { size: 180 },
-};
-
 /**
- * Flat repeats, not diagrams. Each is the banner's subject seen closer or from
- * a different angle, cut down to one or two solid forms so it stays quiet under
- * a page of text.
+ * The same scene, boxed. Used where a club has to be previewed rather than
+ * entered — picking the artwork when a club is created.
  */
-function Tile({ pattern, color }: { pattern: ClubPattern; color: string }) {
-  switch (pattern) {
-    case "field":
-      // The ball's panels, solid.
-      return (
-        <g>
-          <path d="M42 12 L74 12 L84 42 L58 62 L32 42 Z" />
-          <path d="M128 84 L160 84 L170 114 L144 134 L118 114 Z" />
-          <circle cx="18" cy="120" r="13" opacity="0.6" />
-        </g>
-      );
-
-    case "podium":
-      // Solid quote blocks.
-      return (
-        <g>
-          <rect x="18" y="24" width="54" height="18" rx="9" />
-          <rect x="18" y="52" width="34" height="18" rx="9" />
-          <rect x="104" y="118" width="54" height="18" rx="9" opacity="0.7" />
-          <rect x="124" y="146" width="34" height="18" rx="9" opacity="0.7" />
-        </g>
-      );
-
-    case "filmstrip":
-      // Sprocket punches, flat.
-      return (
-        <g>
-          {[0, 1, 2, 3].map((i) => (
-            <rect key={i} x="20" y={16 + i * 40} width="26" height="20" rx="5" />
-          ))}
-          {[0, 1, 2, 3].map((i) => (
-            <rect key={`b${i}`} x="118" y={36 + i * 40} width="26" height="20" rx="5" opacity="0.6" />
-          ))}
-        </g>
-      );
-
-    case "grid":
-      // Quarter-circle and square: proportion.
-      return (
-        <g>
-          <path d="M20 92 L20 20 A72 72 0 0 1 92 92 Z" />
-          <rect x="118" y="118" width="42" height="42" opacity="0.6" />
-        </g>
-      );
-
-    case "circuit":
-      // Nucleus plus satellites.
-      return (
-        <g>
-          <circle cx="52" cy="52" r="20" />
-          <circle cx="132" cy="120" r="11" opacity="0.7" />
-          <circle cx="140" cy="34" r="6" opacity="0.5" />
-          <circle cx="26" cy="140" r="7" opacity="0.5" />
-        </g>
-      );
-
-    case "leaves":
-      // Solid leaves, alternating direction.
-      return (
-        <g>
-          <path d="M96 16 C 96 62 66 92 20 92 C 20 46 50 16 96 16 Z" />
-          <path d="M100 180 C 100 134 130 104 176 104 C 176 150 146 180 100 180 Z" opacity="0.65" />
-        </g>
-      );
-
-    case "waves":
-      return (
-        <g>
-          <path d="M-8 46 q 44 -30 88 0 t 88 0 v18 q -44 30 -88 0 t -88 0 Z" />
-          <path d="M-8 118 q 44 -30 88 0 t 88 0 v18 q -44 30 -88 0 t -88 0 Z" opacity="0.6" />
-        </g>
-      );
-
-    default:
-      return (
-        <g>
-          <path d="M52 16 C 60 44 66 50 94 58 C 66 66 60 72 52 100 C 44 72 38 66 10 58 C 38 50 44 44 52 16 Z" />
-          <circle cx="140" cy="128" r="10" opacity="0.6" />
-        </g>
-      );
-  }
+export function ClubArtSwatch({
+  club,
+  className = "",
+}: {
+  club: Pick<Club, "pattern" | "themeColor">;
+  className?: string;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMax slice"
+    >
+      <rect width="1440" height="900" fill={club.themeColor} opacity="0.09" />
+      <g
+        style={{ color: `color-mix(in oklab, ${club.themeColor} 70%, var(--color-ink))` }}
+        opacity="0.5"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="0"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <ClubScene pattern={club.pattern} />
+      </g>
+    </svg>
+  );
 }

@@ -5,16 +5,20 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { Avatar, PersonRow } from "@/components/Avatar";
-import { ClubBanner, ClubMark } from "@/components/ClubArt";
 import { ClubBackdrop } from "@/components/ClubBackdrop";
+import { ClubMasthead, ClubTabs } from "@/components/ClubMasthead";
 import { InviteTool } from "@/components/InviteTool";
 import { PostCard } from "@/components/PostCard";
 import { PostComposer } from "@/components/PostComposer";
+import { ReviewQueue } from "@/components/ReviewQueue";
 import { Button, Card, EmptyState, Field, TextArea } from "@/components/ui";
 import { useActions, useDemo } from "@/demo/store";
 import {
+  awaitingReview,
+  canSubmitToClub,
   clubBySlug,
   feed,
+  isClubMember,
   isClubOfficer,
   membership,
   roster,
@@ -26,7 +30,7 @@ import { PersonCard } from "@/components/PersonCard";
 import { ProfileDialog } from "@/components/Dialogs";
 import type { Club } from "@/demo/types";
 
-const TABS = ["feed", "members", "about"] as const;
+const TABS = ["feed", "review", "members", "about"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ClubPage() {
@@ -54,6 +58,9 @@ export default function ClubPage() {
   const posts = feed(state, club.id);
   const people = roster(state, club);
   const size = rosterSize(people);
+  const canSubmit = canSubmitToClub(state, club, me);
+  const inClub = isClubMember(state, club, me) || officer;
+  const waiting = inClub ? awaitingReview(state, club, me) : 0;
 
   return (
     <>
@@ -64,46 +71,31 @@ export default function ClubPage() {
         ← Clubs
       </Link>
 
-      {/* Every club gets its own motif, so the page reads as that club's rather
-          than a shared template with the hue swapped. */}
-      <div className="relative overflow-hidden rounded-2xl border border-line">
-        <ClubBanner club={club} className="h-44 w-full sm:h-60" />
-        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 bg-gradient-to-t from-black/75 to-transparent p-4">
-          <ClubMark club={club} size="lg" />
-          <div className="min-w-0 pb-1">
-            <h1 className="truncate font-display text-3xl text-white drop-shadow-sm sm:text-5xl">
-              {club.name}
-            </h1>
-            <p className="text-sm text-white/80">
-              {size} {size === 1 ? "member" : "members"}
-              {people.president
-                ? ` · led by ${people.president.displayName}`
-                : " · no officers yet"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {officer || mine?.status === "accepted" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-          {officer ? (
+      <ClubMasthead
+        club={club}
+        president={people.president}
+        memberCount={size}
+        officerCount={(people.president ? 1 : 0) + (people.vp ? 1 : 0)}
+        postCount={posts.length}
+        action={
+          officer ? (
             <span
-              className="rounded-full px-3 py-1 text-xs font-medium text-white"
+              className="inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium text-white"
               style={{ background: club.themeColor }}
             >
               {/* Admins can act here without holding a seat; say which it is. */}
               {holdsSeat ? "You run this club" : "Admin access"}
             </span>
-          ) : (
+          ) : mine?.status === "accepted" ? (
             <Button variant="ghost" onClick={() => leaveClub(club.id)}>
               Leave club
             </Button>
-          )}
-        </div>
-      ) : null}
+          ) : null
+        }
+      />
 
       {mine?.status === "invited" ? (
-        <Card className="mt-4">
+        <Card className="mt-6">
           <p className="text-sm font-medium">You&apos;ve been invited to {club.name}.</p>
           <div className="mt-3 flex gap-2">
             <Button onClick={() => respondToInvite(club.id, true)}>Accept</Button>
@@ -114,33 +106,36 @@ export default function ClubPage() {
         </Card>
       ) : null}
 
-      <nav className="mt-6 flex gap-1 border-b border-line">
-        {TABS.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => setTab(name)}
-            style={
-              tab === name ? { borderColor: club.themeColor, color: club.themeColor } : undefined
-            }
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium capitalize transition ${
-              tab === name ? "" : "border-transparent text-subtle hover:text-ink"
-            }`}
-          >
-            {name}
-          </button>
-        ))}
-      </nav>
+      <ClubTabs
+        tabs={[
+          { id: "feed", label: "Feed", count: posts.length },
+          // The tab is for people inside the club; there is nothing on it for
+          // anyone else, and its count would leak the queue's size.
+          ...(inClub ? [{ id: "review" as const, label: "Review", count: waiting }] : []),
+          { id: "members", label: "Members", count: size },
+          { id: "about", label: "About" },
+        ]}
+        active={tab}
+        accent={club.themeColor}
+        onSelect={setTab}
+      />
 
-      <div className="mt-6">
+      <div className="mt-7">
         <Swap swapKey={tab}>
         {tab === "feed" ? (
           <>
-            {officer ? (
-              <PostComposer clubId={club.id} placeholder={`Post to ${club.name}…`} />
+            {canSubmit ? (
+              <PostComposer
+                clubId={club.id}
+                needsReview={!officer}
+                placeholder={
+                  officer ? `Post to ${club.name}…` : `Suggest a post for ${club.name}…`
+                }
+              />
             ) : (
               <p className="mb-6 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-subtle">
-                Only this club&apos;s president and VP can post here.
+                Join {club.name} to write here. Members submit posts for the
+                president and VP to review; officers publish directly.
               </p>
             )}
 
@@ -160,6 +155,8 @@ export default function ClubPage() {
             </div>
           </>
         ) : null}
+
+        {tab === "review" ? (inClub ? <ReviewQueue club={club} /> : null) : null}
 
         {tab === "members" ? (
           <div className="space-y-8">

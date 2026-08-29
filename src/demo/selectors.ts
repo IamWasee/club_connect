@@ -5,6 +5,7 @@ import type {
   DemoState,
   Event,
   Post,
+  PostStatus,
   ReactionType,
   Role,
   User,
@@ -22,10 +23,16 @@ export function userById(state: DemoState, id: string): User | null {
   return state.users.find((u) => u.id === id) ?? null;
 }
 
-/** Newest first. `clubId` of null is the main forum. */
+/**
+ * Newest first. `clubId` of null is the main forum.
+ *
+ * Only published posts. A club member's submission sits in the review queue
+ * until an officer rules on it, and a denied one never appears here at all —
+ * its author sees the outcome on the club's Review tab instead.
+ */
 export function feed(state: DemoState, clubId: string | null): FeedPost[] {
   return state.posts
-    .filter((p) => p.clubId === clubId)
+    .filter((p) => p.clubId === clubId && p.status === "published")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((post) => {
       const mine = state.reactions.find(
@@ -140,6 +147,77 @@ export function isClubOfficer(state: DemoState, club: Club, user: User): boolean
   );
 }
 
+/** An accepted member of this club — officers included. */
+export function isClubMember(state: DemoState, club: Club, user: User): boolean {
+  return state.clubMembers.some(
+    (m) => m.clubId === club.id && m.userId === user.id && m.status === "accepted",
+  );
+}
+
+/**
+ * Who may write into a club at all: its officers, and any accepted member.
+ *
+ * The two are not the same act. An officer's post is published on the spot; a
+ * member's is a submission that an officer has to pass. `postStatusFor` is the
+ * single place that difference is decided, so no caller can accidentally
+ * publish something that should have been reviewed.
+ */
+export function canSubmitToClub(state: DemoState, club: Club, user: User): boolean {
+  return isClubOfficer(state, club, user) || isClubMember(state, club, user);
+}
+
+export function postStatusFor(
+  state: DemoState,
+  clubId: string | null,
+  user: User,
+): PostStatus {
+  if (clubId === null) return "published";
+  const club = state.clubs.find((c) => c.id === clubId);
+  if (!club) return "published";
+  return isClubOfficer(state, club, user) ? "published" : "pending";
+}
+
+export function canReviewPosts(state: DemoState, club: Club, user: User): boolean {
+  return isClubOfficer(state, club, user);
+}
+
+export type Submission = Post & { author: User | null; reviewedBy: User | null };
+
+/**
+ * The club's Review tab.
+ *
+ * Everyone in the club gets the tab, but an ordinary member only ever sees
+ * their own submissions — both the ones still waiting and the ones already
+ * ruled on. Officers see the whole queue. Filtering here rather than in the
+ * component means one rule serves the list, its counts and its empty state.
+ *
+ * An approved post stays on the list rather than vanishing into the feed: the
+ * author needs to see that their submission was accepted, not just guess it
+ * from the feed. `reviewedById` is what distinguishes it from a post an
+ * officer published directly, which was never reviewed by anyone.
+ */
+export function reviewQueue(state: DemoState, club: Club, user: User): Submission[] {
+  const all = canReviewPosts(state, club, user);
+
+  return state.posts
+    .filter(
+      (p) =>
+        p.clubId === club.id && (p.status !== "published" || p.reviewedById !== null),
+    )
+    .filter((p) => all || p.authorId === user.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((post) => ({
+      ...post,
+      author: userById(state, post.authorId),
+      reviewedBy: post.reviewedById ? userById(state, post.reviewedById) : null,
+    }));
+}
+
+/** What the Review tab's badge counts: submissions still waiting on someone. */
+export function awaitingReview(state: DemoState, club: Club, user: User): number {
+  return reviewQueue(state, club, user).filter((p) => p.status === "pending").length;
+}
+
 /**
  * Clubs this person may invite someone into.
  *
@@ -215,6 +293,31 @@ export function findByEmail(state: DemoState, email: string): User | null {
   const needle = email.trim().toLowerCase();
   if (!needle) return null;
   return state.users.find((u) => u.email.toLowerCase() === needle) ?? null;
+}
+
+/**
+ * The clubs a person is actually in, for their badges in the directory, with
+ * the seat they hold in each. Invitations they have not accepted do not count.
+ */
+export function clubBadges(
+  state: DemoState,
+  userId: string,
+): Array<{ club: Club; seat: "President" | "Vice President" | "Member" }> {
+  return state.clubs
+    .filter((club) =>
+      state.clubMembers.some(
+        (m) => m.clubId === club.id && m.userId === userId && m.status === "accepted",
+      ),
+    )
+    .map((club) => ({
+      club,
+      seat:
+        club.presidentId === userId
+          ? ("President" as const)
+          : club.vpId === userId
+            ? ("Vice President" as const)
+            : ("Member" as const),
+    }));
 }
 
 export const ROLE_LABELS: Record<Role, string> = {

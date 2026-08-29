@@ -15,6 +15,7 @@ import { REALTIME_TABLES, db, ensureStarterClubs, loadAll } from "@/lib/db";
 import { getSupabase, isBackendConfigured } from "@/lib/supabase";
 import { DEFAULT_EVENT_COLOR } from "./calendar";
 import { STARTER_CLUBS, createEmpty, slugify } from "./initial";
+import { postStatusFor } from "./selectors";
 import { BIO_MAX } from "./types";
 import type {
   Club,
@@ -22,6 +23,7 @@ import type {
   CouncilSeat,
   DemoState,
   Event,
+  Post,
   ReactionType,
   Role,
   User,
@@ -119,6 +121,14 @@ function migrate(state: DemoState): DemoState {
           : base;
       },
     ),
+    // Saves from before the club review flow have no status on their posts.
+    // Everything already in a feed was published by definition.
+    posts: (state.posts ?? []).map((post) => ({
+      ...post,
+      status: post.status ?? "published",
+      reviewedById: post.reviewedById ?? null,
+      reviewedAt: post.reviewedAt ?? null,
+    })),
     events: (state.events ?? []).map((event) => ({
       ...event,
       endDate: event.endDate ?? new Date(new Date(event.date).getTime() + 3_600_000).toISOString(),
@@ -427,10 +437,16 @@ export function useActions() {
         content: string;
         imageUrl: string | null;
       }) => {
-        const post = {
+        const me = state.users.find((u) => u.id === state.currentUserId);
+        const post: Post = {
           id: newId(),
           authorId: state.currentUserId,
           createdAt: new Date().toISOString(),
+          // An officer publishes; anyone else in the club submits for review.
+          // Decided here, once, so no composer can opt out of it.
+          status: me ? postStatusFor(state, input.clubId, me) : "pending",
+          reviewedById: null,
+          reviewedAt: null,
           ...input,
         };
         mutate(
@@ -444,7 +460,28 @@ export function useActions() {
               content: post.content,
               image_url: post.imageUrl,
               created_at: post.createdAt,
+              status: post.status,
             }),
+        );
+      },
+
+      /**
+       * A club officer ruling on a member's submission. Approving publishes it
+       * into the club feed; denying keeps the row so its author can see the
+       * outcome on the Review tab rather than watching it vanish.
+       */
+      reviewPost: (postId: string, approve: boolean) => {
+        const status = approve ? "published" : "denied";
+        const reviewedById = state.currentUserId;
+        const reviewedAt = new Date().toISOString();
+        mutate(
+          (d) => ({
+            ...d,
+            posts: d.posts.map((p) =>
+              p.id === postId ? { ...p, status, reviewedById, reviewedAt } : p,
+            ),
+          }),
+          () => db.setPostStatus(postId, status, reviewedById, reviewedAt),
         );
       },
 
