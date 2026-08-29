@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { useActions } from "@/demo/store";
 import { ConfirmDialog } from "@/components/Dialogs";
+import { Linkify } from "@/components/Linkify";
 import type { FeedPost } from "@/demo/selectors";
 
 export function PostCard({ post, canDelete }: { post: FeedPost; canDelete: boolean }) {
@@ -36,10 +37,11 @@ export function PostCard({ post, canDelete }: { post: FeedPost; canDelete: boole
         {post.title}
       </h2>
 
-      {/* Plain text, rendered as text: no markdown or HTML parsing, so a post
-          can't inject markup into anyone else's page. */}
+      {/* Still plain text: Linkify only wraps matched URLs in <a> elements and
+          inserts everything else as React text nodes, so a post cannot inject
+          markup into anyone else's page. */}
       <p className="mt-3 max-w-[62ch] whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink/85">
-        {post.content}
+        <Linkify text={post.content} />
       </p>
 
       {post.imageUrl ? (

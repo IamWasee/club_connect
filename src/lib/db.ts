@@ -95,6 +95,10 @@ export async function loadAll(): Promise<DemoState | null> {
       content: r.content,
       imageUrl: r.image_url,
       createdAt: r.created_at,
+      // Columns added with the review flow; a row written before it is live.
+      status: r.status ?? "published",
+      reviewedById: r.reviewed_by_id ?? null,
+      reviewedAt: r.reviewed_at ?? null,
     })),
     reactions: (reactions.data ?? []).map((r) => ({
       postId: r.post_id,
@@ -235,6 +239,20 @@ export const db = {
 
   async deletePost(id: string) {
     await run(client().from("posts").delete().eq("id", id));
+  },
+
+  async setPostStatus(
+    id: string,
+    status: string,
+    reviewedById: string,
+    reviewedAt: string,
+  ) {
+    await run(
+      client()
+        .from("posts")
+        .update({ status, reviewed_by_id: reviewedById, reviewed_at: reviewedAt })
+        .eq("id", id),
+    );
   },
 
   async setReaction(postId: string, userId: string, type: string) {

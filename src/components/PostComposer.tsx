@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Avatar } from "@/components/Avatar";
 import { Button, Card, TextArea, TextInput } from "@/components/ui";
 import { useActions, useDemo } from "@/demo/store";
-import { escapeXml } from "@/demo/initial";
+import { compressImage, rejectReason } from "@/lib/image";
 
 const TITLE_MAX = 120;
 const CONTENT_MAX = 5000;
@@ -13,15 +13,30 @@ const CONTENT_MAX = 5000;
 /**
  * Shown only to people who may post here — the caller decides that, and the
  * page re-checks with the same permission helper the roster uses.
+ *
+ * `needsReview` only changes what the form says. Whether a post is published
+ * or queued is decided in the store from the author's actual standing, so a
+ * composer rendered with the wrong flag cannot publish anything it shouldn't.
  */
-export function PostComposer({ clubId, placeholder }: { clubId: string | null; placeholder: string }) {
+export function PostComposer({
+  clubId,
+  placeholder,
+  needsReview = false,
+}: {
+  clubId: string | null;
+  placeholder: string;
+  needsReview?: boolean;
+}) {
   const { me } = useDemo();
   const { createPost } = useActions();
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [withImage, setWithImage] = useState(false);
+  const [image, setImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const ready = title.trim().length > 0 && content.trim().length > 0;
 
@@ -33,12 +48,13 @@ export function PostComposer({ clubId, placeholder }: { clubId: string | null; p
       clubId,
       title: title.trim(),
       content: content.trim(),
-      imageUrl: withImage ? cover(title.trim()) : null,
+      imageUrl: image,
     });
 
     setTitle("");
     setContent("");
-    setWithImage(false);
+    setImage(null);
+    setImageError(null);
     setOpen(false);
   }
 
@@ -74,41 +90,81 @@ export function PostComposer({ clubId, placeholder }: { clubId: string | null; p
           value={content}
           maxLength={CONTENT_MAX}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What do students need to know\u2026"
+          placeholder="What do students need to know…"
         />
 
+        {image ? (
+          <div className="relative overflow-hidden rounded-xl border border-line">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image} alt="" className="max-h-64 w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => setImage(null)}
+              className="absolute right-2 top-2 rounded-full bg-ink/80 px-2.5 py-1 text-xs font-medium text-paper"
+            >
+              Remove
+            </button>
+          </div>
+        ) : null}
+
+        {imageError ? (
+          <p role="alert" className="text-xs text-down">
+            {imageError}
+          </p>
+        ) : null}
+
+        {needsReview ? (
+          <p className="rounded-xl border border-line bg-brand-soft/50 px-4 py-2.5 text-xs leading-relaxed text-subtle">
+            This club&apos;s president and vice president read submissions before
+            they reach the feed. You can follow yours on the Review tab.
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="flex items-center gap-2 text-sm text-subtle">
-            <input
-              type="checkbox"
-              checked={withImage}
-              onChange={(e) => setWithImage(e.target.checked)}
-              className="h-4 w-4 accent-[var(--color-brand)]"
-            />
-            Add a cover image
-          </label>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+
+              const reason = rejectReason(file);
+              if (reason) return setImageError(reason);
+
+              setImageError(null);
+              setBusy(true);
+              try {
+                setImage(await compressImage(file, { maxEdge: 1280, quality: 0.78 }));
+              } catch (cause) {
+                setImageError(cause instanceof Error ? cause.message : "Could not use that image.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => fileInput.current?.click()}
+          >
+            {busy ? "Processing…" : image ? "Replace image" : "Add an image"}
+          </Button>
 
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={!ready}>
-              Post
+              {needsReview ? "Submit for review" : "Post"}
             </Button>
           </div>
         </div>
+
       </form>
     </Card>
   );
-}
-
-/**
- * Uploads are a Phase-later concern; the demo generates a cover from the title
- * so a post with an image is still demonstrable without a storage bucket.
- */
-function cover(title: string): string {
-  const hue = [...title].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 360;
-  const text = title.length > 28 ? `${title.slice(0, 27)}…` : title;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 70% 58%)"/><stop offset="1" stop-color="hsl(${hue + 45} 65% 42%)"/></linearGradient></defs><rect width="800" height="400" fill="url(#g)"/><text x="400" y="200" dy="0.35em" text-anchor="middle" font-family="system-ui, sans-serif" font-size="42" font-weight="700" fill="rgba(255,255,255,0.92)">${escapeXml(text)}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
