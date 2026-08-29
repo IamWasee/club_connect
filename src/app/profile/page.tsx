@@ -15,6 +15,7 @@ import {
 import { useActions, useDemo } from "@/demo/store";
 import { ROLE_LABELS, clubsOf, pendingInvites } from "@/demo/selectors";
 import { AVATAR_HUES, avatarFor } from "@/demo/initial";
+import { AccountSwitcher } from "@/components/Sidebar";
 
 const NAME_MIN = 2;
 const NAME_MAX = 32;
@@ -125,6 +126,11 @@ export default function ProfilePage() {
             {dirty ? "Save profile" : "Saved"}
           </Button>
         </div>
+      </Card>
+
+      <Card className="mt-4 md:hidden">
+        <p className="mb-3 text-xs font-semibold text-subtle">Demo accounts</p>
+        <AccountSwitcher compact />
       </Card>
 
       <Card className="mt-4">

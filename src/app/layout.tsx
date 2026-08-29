@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 
 import { BottomNav } from "@/components/BottomNav";
+import { Sidebar, StatusBanners } from "@/components/Sidebar";
 import { Grain } from "@/components/Poster";
-import { Header } from "@/components/Header";
 import { DemoProvider } from "@/demo/store";
 
 import "./globals.css";
@@ -42,10 +42,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <Grain />
         <DemoProvider>
-          <Header />
-          {/* pb-24 on phones clears the fixed bottom bar. */}
-          <main className="mx-auto max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pb-14 sm:pt-14">
-            {children}
+          <Sidebar />
+          {/* Nothing across the top: the rail holds the chrome, so the content
+              column starts at the very top of the viewport. pb-24 on phones
+              clears the fixed bottom bar; the right padding clears the rail. */}
+          <main className="mx-auto max-w-3xl px-4 pb-24 pt-8 sm:px-6 sm:pb-14 md:max-w-none md:pl-6 md:pr-[17rem] lg:pr-[18rem]">
+            <div className="mx-auto max-w-3xl">
+              <StatusBanners />
+              {children}
+            </div>
           </main>
           <BottomNav />
         </DemoProvider>
